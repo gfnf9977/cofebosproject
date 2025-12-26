@@ -1,0 +1,32 @@
+у мене в самій бд  таблиці 
+users(id, username, password, last_name, first_name, middle_name, phone_number, birth_date, status, points)
+shops(id, Street, nomer, loc_desc, photo1, has_bakery)
+drinks(id, name)
+drink_sizes(id, drink_id, size, price)
+bakery(id, name, price)
+orders(id, user_id, shop_id, order_date, status, total_price)
+order_bakery(id, order_id, bakery_id, quantily, price)
+order_drinks(id, order_id, drink_id, size, quantily price)
+payments(id, order_id, payment_date, card-number, expiration_date, cvv)
+vacancies(id title, description, salary)
+feedback(id, user_id, vacancy_id, first_name, last_name, first_name, middle_name, contact_method, contact_detail, residence, experience, about, why_coffe_boss, created_at, shop_id)
+schedule(id, user_id, shop_id, work_date, period)
+luckycheck(id, code, status, order_id)
+
+також є зовнішні ключі між drink_id(drink_sizes) та id(drinks)
+також є зовнішні ключі між shop_id(users) та id(shops)
+також є зовнішні ключі між bakery_id(order_bakery) та id(bakery)
+також є зовнішні ключі між order_id(order_bakery) та id(orders)
+також є зовнішні ключі між drink_id(order_drinks) та id(drinks)
+також є зовнішні ключі між order_id(order_drinks) та id(orders)
+також є зовнішні ключі між shop_id(orders) та id(shops)
+також є зовнішні ключі між user_id(orders) та id(users)
+також є зовнішні ключі між order_id(payments) та id(orders)
+також є зовнішні ключі між user_id(payments) та id(users)
+також є зовнішні ключі між user_id(schedule) та id(users)
+також є зовнішні ключі між shop_id(schedule) та id(shops)
+
+
+
+
+
