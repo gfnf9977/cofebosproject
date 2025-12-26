@@ -1,0 +1,230 @@
+-- 1. Створення бази даних
+IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'coffeebes')
+BEGIN
+    CREATE DATABASE coffeebes;
+END
+GO
+
+USE coffeebes;
+GO
+
+-- 2. Таблиця кав'ярень (shops) - створюємо першою, бо на неї посилаються користувачі
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='shops' AND xtype='U')
+CREATE TABLE shops (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    Street NVARCHAR(255) NOT NULL,
+    nomer NVARCHAR(50) NOT NULL,
+    loc_desc NVARCHAR(MAX),
+    photo1 NVARCHAR(MAX), -- URL або шлях до фото
+    has_bakery BIT DEFAULT 0
+);
+GO
+
+-- 3. Таблиця користувачів (users)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='users' AND xtype='U')
+CREATE TABLE users (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    username NVARCHAR(100) UNIQUE NOT NULL,
+    password NVARCHAR(255) NOT NULL,
+    first_name NVARCHAR(100),
+    middle_name NVARCHAR(100),
+    last_name NVARCHAR(100),
+    phone_number NVARCHAR(20),
+    birth_date DATE,
+    shop_id INT NULL, -- Може бути NULL для звичайних гостей
+    status NVARCHAR(50) DEFAULT 'user', -- 'user', 'admin', 'prime-admin', 'ban'
+    points INT DEFAULT 0,
+    avatar VARBINARY(MAX), -- Для збереження аватарки байтами
+    FOREIGN KEY (shop_id) REFERENCES shops(id)
+);
+GO
+
+-- 4. Таблиця напоїв (drinks)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='drinks' AND xtype='U')
+CREATE TABLE drinks (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    name NVARCHAR(100) NOT NULL,
+    image VARBINARY(MAX) -- Фото меню
+);
+GO
+
+-- 5. Розміри напоїв та ціни (drink_sizes)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='drink_sizes' AND xtype='U')
+CREATE TABLE drink_sizes (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    drink_id INT NOT NULL,
+    size NVARCHAR(50) NOT NULL, -- Наприклад: S, M, L
+    price DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (drink_id) REFERENCES drinks(id) ON DELETE CASCADE
+);
+GO
+
+-- 6. Таблиця випічки (bakery)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='bakery' AND xtype='U')
+CREATE TABLE bakery (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    name NVARCHAR(100) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    image VARBINARY(MAX)
+);
+GO
+
+-- 7. Таблиця замовлень (orders)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='orders' AND xtype='U')
+CREATE TABLE orders (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    user_id INT NOT NULL,
+    shop_id INT NOT NULL,
+    status NVARCHAR(50) DEFAULT 'pending', -- 'pending', 'paid'
+    total_price DECIMAL(10, 2) NOT NULL,
+    order_date DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (shop_id) REFERENCES shops(id)
+);
+GO
+
+-- 8. Деталі замовлення - Напої (order_drinks)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='order_drinks' AND xtype='U')
+CREATE TABLE order_drinks (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    order_id INT NOT NULL,
+    drink_id INT NOT NULL,
+    size NVARCHAR(50),
+    quantity INT NOT NULL,
+    price DECIMAL(10, 2) NOT NULL, -- Ціна на момент покупки
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (drink_id) REFERENCES drinks(id)
+);
+GO
+
+-- 9. Деталі замовлення - Випічка (order_bakery)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='order_bakery' AND xtype='U')
+CREATE TABLE order_bakery (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    order_id INT NOT NULL,
+    bakery_id INT NOT NULL,
+    quantity INT NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (bakery_id) REFERENCES bakery(id)
+);
+GO
+
+-- 10. Таблиця платежів (payments)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='payments' AND xtype='U')
+CREATE TABLE payments (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    order_id INT NOT NULL,
+    user_id INT NOT NULL,
+    card_number NVARCHAR(20),
+    expiration_date NVARCHAR(10),
+    cvv NVARCHAR(5),
+    payment_date DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (order_id) REFERENCES orders(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+GO
+
+-- 11. Таблиця вакансій (vacancies)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='vacancies' AND xtype='U')
+CREATE TABLE vacancies (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    title NVARCHAR(255) NOT NULL,
+    description NVARCHAR(MAX) NOT NULL,
+    salary NVARCHAR(100) NOT NULL
+);
+GO
+
+-- 12. Відгуки на вакансії (feedback)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='feedback' AND xtype='U')
+CREATE TABLE feedback (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    user_id INT NOT NULL,
+    vacancy_id INT NOT NULL,
+    first_name NVARCHAR(100),
+    middle_name NVARCHAR(100),
+    last_name NVARCHAR(100),
+    phone NVARCHAR(20),
+    contact_method NVARCHAR(50),
+    contact_detail NVARCHAR(255),
+    residence NVARCHAR(255),
+    experience NVARCHAR(MAX),
+    about NVARCHAR(MAX),
+    why_coffe_boss NVARCHAR(MAX),
+    created_at DATETIME DEFAULT GETDATE(),
+    shop_id INT NULL, -- Може бути призначено пізніше
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (vacancy_id) REFERENCES vacancies(id),
+    FOREIGN KEY (shop_id) REFERENCES shops(id)
+);
+GO
+
+-- 13. Графік роботи (schedule)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='schedule' AND xtype='U')
+CREATE TABLE schedule (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    user_id INT NOT NULL,
+    shop_id INT NOT NULL,
+    work_date DATE NOT NULL,
+    period NVARCHAR(100) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (shop_id) REFERENCES shops(id)
+);
+GO
+
+-- 14. Щасливі чеки/коди (luckycheck)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='luckycheck' AND xtype='U')
+CREATE TABLE luckycheck (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    order_id INT NOT NULL,
+    code NVARCHAR(50) NOT NULL,
+    status NVARCHAR(50) DEFAULT 'active', -- 'active', 'used'
+    FOREIGN KEY (order_id) REFERENCES orders(id)
+);
+GO
+
+-- 15. Галерея зображень (gallery)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='gallery' AND xtype='U')
+CREATE TABLE gallery (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    image_data VARBINARY(MAX) NOT NULL,
+    image_name NVARCHAR(255),
+    upload_date DATETIME DEFAULT GETDATE()
+);
+GO
+
+-- 16. Повідомлення (messages)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='messages' AND xtype='U')
+CREATE TABLE messages (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    sender_id INT NOT NULL,
+    receiver_id INT NOT NULL,
+    content NVARCHAR(MAX) NOT NULL,
+    message_time DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (sender_id) REFERENCES users(id),
+    FOREIGN KEY (receiver_id) REFERENCES users(id)
+);
+GO
+
+-- 17. Замовлення за бали / Бонусні замовлення (pointorder)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='pointorder' AND xtype='U')
+CREATE TABLE pointorder (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    personality NVARCHAR(255),
+    number NVARCHAR(50),
+    type_delivery NVARCHAR(100),
+    deliveryOption NVARCHAR(100),
+    city NVARCHAR(100),
+    branchNumber NVARCHAR(50),
+    postomatNumber NVARCHAR(50),
+    address NVARCHAR(255),
+    cafeAddress NVARCHAR(255),
+    orderDetails NVARCHAR(MAX),
+    created_at DATETIME DEFAULT GETDATE(),
+    status NVARCHAR(50) DEFAULT 'new'
+);
+GO
+
+-- Додавання початкового адміністратора (Опціонально)
+-- Розкоментуйте, якщо потрібно створити першого адміна
+-- INSERT INTO users (username, password, status) VALUES ('admin', 'admin', 'prime-admin');
